@@ -1,79 +1,95 @@
 import streamlit as st
-from sentence_transformers import SentenceTransformer, util
-import fitz  # PyMuPDF
 import pandas as pd
-import re
+from engine import ResumeEngine
 
-# 1. SETUP THE PAGE
-st.set_page_config(page_title="AI Resume Matcher Pro", page_icon="🤖")
-st.title("🤖 AI Resume Screener")
-st.write("Using **Semantic NLP** to find the perfect candidate.")
+# Configuration
+st.set_page_config(page_title="AI Resume Screener", page_icon="🤖", layout="wide")
 
-# 2. LOAD THE AI BRAIN
+# Custom CSS for a premium look
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+    """, unsafe_allow_html=True)
+
 @st.cache_resource
-def load_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
+def init_engine():
+    return ResumeEngine()
 
-model = load_model()
+try:
+    engine = init_engine()
+except Exception as e:
+    st.error(f"System Initialization Error: {e}")
+    st.stop()
 
-# 3. HELPER FUNCTIONS (The "Why" logic)
-def extract_text(file):
-    doc = fitz.open(stream=file.read(), filetype="pdf")
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    return text
+# Header
+st.title("🤖AI-Powered Resume Screener")
+st.markdown("#### Modular Semantic Matching Engine for Advanced Candidate Evaluation")
 
-def get_insights(text1, text2):
-    # This finds common words with more than 4 letters (to find skills like 'Python', 'React')
-    words1 = set(re.findall(r'\w{5,}', text1.lower()))
-    words2 = set(re.findall(r'\w{5,}', text2.lower()))
-    common = list(words1.intersection(words2))
-    return common[:8] # Return top 8 matching words
+col1, col2 = st.columns([1, 1], gap="large")
 
-# 4. THE USER INTERFACE
-job_desc = st.text_area("📋 Job Description", placeholder="Paste the job requirements here...", height=150)
-uploaded_file = st.file_uploader("Upload Resume (PDF)", type="pdf")
+with col1:
+    st.subheader("📋 Job Description")
+    job_input = st.text_area("Paste the role requirements here...", height=300, placeholder="We are looking for a Python Developer with experience in...")
 
-if st.button("Analyze Match"):
-    if job_desc and uploaded_file:
-        with st.spinner("AI is examining the context..."):
-            # Get text
-            resume_text = extract_text(uploaded_file)
-            
-            # AI Math (Semantic Meaning)
-            emb1 = model.encode(job_desc, convert_to_tensor=True)
-            emb2 = model.encode(resume_text, convert_to_tensor=True)
-            score = float(util.cos_sim(emb1, emb2)[0][0]) * 100
+with col2:
+    st.subheader("📄 Candidate Resume")
+    resume_file = st.file_uploader("Upload PDF Resume", type=["pdf"])
+    if resume_file:
+        st.success("File uploaded successfully!")
 
-            # --- DISPLAY RESULTS ---
-            st.divider()
-            st.subheader(f"Match Result: {score:.1f}%")
-            
-            # 5. THE VISUAL BAR (New Feature)
-            st.progress(score / 100)
-
-            if score > 70:
-                st.success("🌟 Strong Match: Profile aligns perfectly.")
-            elif score > 40:
-                st.warning("⚠️ Moderate Match: Some skills overlap, but gaps exist.")
-            else:
-                st.error("📉 Low Match: Profile does not align well.")
-
-            # 6. THE "INSIGHT" SECTION (New Feature - The 'Why')
-            st.subheader("🔍 Match Insights")
-            matching_skills = get_insights(job_desc, resume_text)
-            
-            if matching_skills:
-                st.write("The AI found these matching skills/keywords:")
-                # Display skills as pretty tags
-                st.write(", ".join([f"`{word.upper()}`" for word in matching_skills]))
-            else:
-                st.write("No direct word overlaps. The score is based on overall sentence meaning.")
-                
-            # 7. THE CHART (New Feature)
-            chart_data = pd.DataFrame({"Match": [score], "Gap": [100-score]}, index=["Analysis"])
-            st.bar_chart(chart_data)
-
+if st.button("Analyze Alignment", use_container_width=True):
+    if not job_input or not resume_file:
+        st.warning("Please provide both the Job Description and the Resume PDF.")
     else:
-        st.error("Please provide both the Job Description and the Resume!")
+        with st.spinner("Analyzing semantics and segmenting resume structure..."):
+            text = engine.extract_text(resume_file)
+            if text:
+                results = engine.compute_scores(job_input, text)
+                keywords = engine.get_keywords(job_input, text)
+                
+                st.divider()
+                
+                # Top Level Metrics
+                m1, m2 = st.columns([1, 3])
+                with m1:
+                    st.metric("Global Match Score", f"{results['overall']}%")
+                with m2:
+                    st.progress(results['overall'] / 100)
+                    st.caption("Weighted score based on Skills, Experience, and Education alignment.")
+
+                # Category Breakdown
+                st.subheader("📊 Structural Breakdown")
+                b1, b2, b3 = st.columns(3)
+                b1.metric("Skills Alignment", f"{results['breakdown']['skills']}%")
+                b2.metric("Experience Match", f"{results['breakdown']['experience']}%")
+                b3.metric("Education Fit", f"{results['breakdown']['education']}%")
+
+                # Keyword Insights
+                st.subheader("💡 Matching Insights (Explainable AI)")
+                if keywords:
+                    st.write("The system detected overlapping core competencies:")
+                    cols = st.columns(len(keywords) if len(keywords) < 5 else 5)
+                    for idx, k in enumerate(keywords):
+                        cols[idx % 5].info(f"**{k}**")
+                else:
+                    st.info("No significant technical keyword overlaps detected.")
+                
+                # Visual Chart
+                chart_data = pd.DataFrame({
+                    "Category": ["Skills", "Experience", "Education"],
+                    "Match %": [results['breakdown']['skills'], results['breakdown']['experience'], results['breakdown']['education']]
+                })
+                st.bar_chart(chart_data.set_index("Category"))
+
+            else:
+                st.error("Text extraction failed. Please ensure the PDF is not encrypted or empty.")
+
+st.sidebar.title("Engineering Specs")
+st.sidebar.info("""
+- **Core:** SBERT (all-MiniLM-L6-v2)
+- **Architecture:** Modular Engine
+- **Logic:** Category-Weighted Scoring
+- **XAI:** Boolean Semantic Mapping
+""")
