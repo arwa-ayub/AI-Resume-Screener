@@ -1,7 +1,7 @@
 # AI-Powered Resume Matcher
 **An intelligent recruitment tool that uses Natural Language Processing (NLP) to understand the semantic meaning of resumes.**
 
-![Application Preview](assets/screenshot.png)
+![Application Preview](assets/Screenshot.png)
 ![Application Preview](assets/Screenshot..png)
 
 ## Project Overview
