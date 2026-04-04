@@ -2,7 +2,9 @@
 **An intelligent recruitment tool that uses Natural Language Processing (NLP) to understand the semantic meaning of resumes.**
 
 ![Application Preview](assets/Screenshot.png)
-![Application Preview](assets/Screenshot..png)
+![Application Preview](assets/Screenshot2.png)
+![Application Preview](assets/Screenshot3.png)
+
 
 ## Project Overview
 Traditional Resume Screeners (ATS) often fail because they only look for exact keyword matches. This project uses **Machine Learning** to perform **Semantic Analysis**, allowing the system to understand that different words can have the same meaning (e.g., "Web Development" and "Frontend Engineering").

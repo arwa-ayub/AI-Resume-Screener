@@ -47,7 +47,7 @@ if st.button("Analyze Alignment", use_container_width=True):
             text = engine.extract_text(resume_file)
             if text:
                 results = engine.calculate_match(job_input, text)
-                keywords = engine.get_keywords(job_input, text)
+                keywords = engine.get_semantic_insights(job_input, text)
                 
                 st.divider()
                 
