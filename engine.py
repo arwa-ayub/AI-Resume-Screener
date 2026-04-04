@@ -71,7 +71,7 @@ class ResumeEngine:
                 
             content_embedding = self.model.encode(content, convert_to_tensor=True)
             similarity = util.cos_sim(job_embedding, content_embedding).item()
-            scores[category] = round(max(0, similarity) * 100, 2)
+            scores[category] = round((similarity + 1) / 2 * 100, 2)
             
         # Overall weighted score (Skills 50%, Experience 30%, Education 20%)
         overall = (scores['skills'] * 0.5) + (scores['experience'] * 0.3) + (scores['education'] * 0.2)

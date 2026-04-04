@@ -46,7 +46,7 @@ if st.button("Analyze Alignment", use_container_width=True):
         with st.spinner("Analyzing semantics and segmenting resume structure..."):
             text = engine.extract_text(resume_file)
             if text:
-                results = engine.compute_scores(job_input, text)
+                results = engine.calculate_match(job_input, text)
                 keywords = engine.get_keywords(job_input, text)
                 
                 st.divider()
